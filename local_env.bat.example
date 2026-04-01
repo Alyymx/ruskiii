@@ -1,0 +1,6 @@
+@echo off
+REM Copy this file to local_env.bat (same folder) and set your key.
+REM local_env.bat is ignored by git.
+
+set OXLO_API_KEY=your_key_here
+set OXLO_BASE_URL=https://api.oxlo.ai/v1
