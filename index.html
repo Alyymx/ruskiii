@@ -488,6 +488,25 @@
   }
   .level-badge:hover { background: rgba(201,184,255,0.15); border-color: rgba(201,184,255,0.3); }
   .level-badge::before { content: '◆'; font-size: 8px; }
+
+  .speak-btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    margin-top: 14px;
+    padding: 9px 18px;
+    background: var(--orange-dim);
+    border: 1px solid rgba(255,107,43,0.35);
+    border-radius: var(--r);
+    color: var(--orange);
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .speak-btn:hover { background: rgba(255,107,43,0.2); border-color: var(--orange); }
+  .speak-btn:active { transform: scale(0.97); }
+  .speak-btn.speaking { background: var(--orange); color: #1a0800; border-color: var(--orange); }
+  .speak-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
 </style>
 </head>
 <body>
@@ -532,7 +551,15 @@
         <div class="card-big" id="cfWord">—</div>
         <div class="card-pron" id="cfPron"></div>
         <div id="cfTags"></div>
-        <div class="card-hint">tap card to reveal the full lesson</div>
+        <button class="speak-btn" id="speakBtn" onclick="speakWord(event)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          hear pronunciation
+        </button>
+        <div class="card-hint" style="margin-top:10px;">tap card to reveal the full lesson</div>
       </div>
       <!-- BACK -->
       <div class="card-face back" id="cardBack">
@@ -605,6 +632,23 @@ const cardInner = document.getElementById('cardInner');
 const genBtn = document.getElementById('genBtn');
 const statusMsg = document.getElementById('statusMsg');
 
+// ── SPEECH ──
+function speakWord(e) {
+  e.stopPropagation();
+  if (!lesson) return;
+  const btn = document.getElementById('speakBtn');
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(lesson.word);
+  utt.lang = 'ru-RU';
+  utt.rate = 0.85;
+  utt.pitch = 1;
+  btn.classList.add('speaking');
+  btn.querySelector('span') && (btn.querySelector('span').textContent = 'playing...');
+  utt.onend = () => { btn.classList.remove('speaking'); };
+  utt.onerror = () => { btn.classList.remove('speaking'); };
+  window.speechSynthesis.speak(utt);
+}
+
 // ── API KEY ──
 function saveKey() {
   const v = document.getElementById('apiKeyInput').value.trim();
@@ -623,6 +667,7 @@ function saveKey() {
 function getKey() { return localStorage.getItem('ruskiii_oxlo_key') || ''; }
 
 window.addEventListener('load', () => {
+  document.getElementById('speakBtn').style.display = 'none';
   if (getKey()) {
     document.getElementById('setupCard').style.display = 'none';
     setTimeout(() => addCat('Привет! I\'m <strong>Apelsin</strong> 🐾 your fluffy Russian tutor. Pick a topic and level — let\'s get your word for today!'), 400);
@@ -800,6 +845,12 @@ Return ONLY valid JSON, no markdown, no preamble:
     document.getElementById('cfPron').textContent = '/' + lesson.pronunciation + '/';
     document.getElementById('cfTags').innerHTML =
       `<span class="tag">${lesson.grammatical_info}</span> <span class="tag">${lesson.register}</span> <span class="tag">${lesson.level_used}</span>`;
+
+    // show & auto-play speak button
+    const speakBtn = document.getElementById('speakBtn');
+    speakBtn.style.display = 'inline-flex';
+    speakBtn.classList.remove('speaking');
+    setTimeout(() => speakWord({ stopPropagation: () => {} }), 600);
 
     // populate back
     document.getElementById('cbWord').textContent = lesson.word;
