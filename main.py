@@ -29,7 +29,7 @@ from openai import OpenAI
 # Constants
 # ─────────────────────────────────────────────
 
-DEFAULT_MODEL = "deepseek-r1-8b"
+DEFAULT_MODEL = "deepseek-v3.2"
 DEFAULT_OUT_DIR = "output"
 DB_PATH = Path("progress.db")
 
