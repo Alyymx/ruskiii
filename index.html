@@ -1,0 +1,363 @@
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); background: transparent; }
+
+  .app { max-width: 680px; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+
+  .header { text-align: center; margin-bottom: 1.5rem; }
+  .header h1 { font-size: 22px; font-weight: 500; color: var(--color-text-primary); }
+  .header p { font-size: 14px; color: var(--color-text-secondary); margin-top: 4px; }
+
+  .chat-area { display: flex; flex-direction: column; gap: 12px; margin-bottom: 1.5rem; min-height: 120px; }
+
+  .bubble-row { display: flex; align-items: flex-end; gap: 10px; }
+  .bubble-row.user { flex-direction: row-reverse; }
+
+  .cat-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: #f5a623;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; line-height: 1;
+    border: 2px solid #e0901a;
+    user-select: none;
+  }
+
+  .bubble {
+    max-width: 75%;
+    padding: 10px 14px;
+    border-radius: 18px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--color-text-primary);
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+  }
+  .bubble-row.user .bubble {
+    background: #f5a623;
+    color: #3a1f00;
+    border-color: #e0901a;
+  }
+  .bubble strong { font-weight: 500; }
+  .bubble .ru-word { font-size: 22px; font-weight: 500; display: block; margin: 4px 0 2px; }
+  .bubble .tag { display: inline-block; font-size: 11px; background: var(--color-background-tertiary); color: var(--color-text-secondary); border-radius: 8px; padding: 2px 8px; margin: 2px 2px 2px 0; border: 0.5px solid var(--color-border-tertiary); }
+
+  .typing { display: flex; align-items: center; gap: 5px; padding: 10px 14px; }
+  .typing span { width: 7px; height: 7px; border-radius: 50%; background: var(--color-text-tertiary); animation: blink 1.2s infinite; }
+  .typing span:nth-child(2) { animation-delay: 0.2s; }
+  .typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes blink { 0%,80%,100%{opacity:0.2} 40%{opacity:1} }
+
+  .card-flip-area { margin-bottom: 1.5rem; perspective: 900px; display: none; }
+  .card-flip-area.visible { display: block; }
+  .card-inner { position: relative; width: 100%; transition: transform 0.55s cubic-bezier(0.4,0,0.2,1); transform-style: preserve-3d; cursor: pointer; }
+  .card-inner.flipped { transform: rotateY(180deg); }
+  .card-face {
+    border-radius: var(--border-radius-lg);
+    border: 0.5px solid var(--color-border-tertiary);
+    padding: 1.5rem;
+    backface-visibility: hidden;
+    background: var(--color-background-primary);
+  }
+  .card-face.back { position: absolute; top: 0; left: 0; width: 100%; transform: rotateY(180deg); }
+  .card-label { font-size: 11px; color: var(--color-text-tertiary); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+  .card-word { font-size: 36px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 4px; }
+  .card-pron { font-size: 14px; color: var(--color-text-secondary); margin-bottom: 12px; }
+  .card-hint { font-size: 12px; color: var(--color-text-tertiary); margin-top: 12px; }
+  .back-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .back-section { margin-bottom: 10px; }
+  .back-section-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 3px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .back-section-val { font-size: 14px; color: var(--color-text-primary); line-height: 1.5; }
+  .example-ru { font-size: 14px; font-weight: 500; color: var(--color-text-primary); }
+  .example-en { font-size: 13px; color: var(--color-text-secondary); }
+
+  .rating-row { display: flex; gap: 8px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+  .rate-btn { padding: 7px 14px; font-size: 13px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-primary); color: var(--color-text-primary); cursor: pointer; transition: background 0.15s, transform 0.1s; }
+  .rate-btn:hover { background: var(--color-background-secondary); transform: translateY(-1px); }
+  .rate-btn.selected { background: #f5a623; color: #3a1f00; border-color: #e0901a; }
+
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .ctrl-btn {
+    padding: 9px 18px; font-size: 14px; border: 0.5px solid var(--color-border-secondary);
+    border-radius: var(--border-radius-md); background: var(--color-background-primary);
+    color: var(--color-text-primary); cursor: pointer; transition: background 0.15s, transform 0.1s;
+  }
+  .ctrl-btn:hover { background: var(--color-background-secondary); transform: translateY(-1px); }
+  .ctrl-btn.primary { background: #f5a623; color: #3a1f00; border-color: #e0901a; font-weight: 500; }
+  .ctrl-btn.primary:hover { background: #e0901a; }
+  .ctrl-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .topic-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+  .topic-chip { padding: 5px 12px; font-size: 13px; border: 0.5px solid var(--color-border-tertiary); border-radius: 20px; background: var(--color-background-secondary); color: var(--color-text-secondary); cursor: pointer; transition: all 0.15s; }
+  .topic-chip.active { background: #f5a623; color: #3a1f00; border-color: #e0901a; }
+
+  .streak-bar { display: flex; align-items: center; gap: 8px; justify-content: center; margin-bottom: 16px; font-size: 13px; color: var(--color-text-secondary); }
+  .streak-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--color-border-tertiary); }
+  .streak-dot.done { background: #f5a623; }
+
+  .status-msg { text-align: center; font-size: 13px; color: var(--color-text-secondary); margin-top: 8px; min-height: 20px; }
+
+  .divider { border: none; border-top: 0.5px solid var(--color-border-tertiary); margin: 1.5rem 0; }
+</style>
+
+<div class="app">
+  <div class="header">
+    <h1>ruskiii 🇷🇺</h1>
+    <p>Your daily Russian lesson with Apelsin, your fluffy guide</p>
+  </div>
+
+  <div class="streak-bar" id="streakBar">
+    <span>Today's words:</span>
+  </div>
+
+  <div class="chat-area" id="chatArea"></div>
+
+  <div class="card-flip-area" id="cardArea">
+    <div class="card-inner" id="cardInner">
+      <div class="card-face front" id="cardFront">
+        <div class="card-label">Russian word — tap to reveal</div>
+        <div class="card-word" id="cfWord">—</div>
+        <div class="card-pron" id="cfPron"></div>
+        <div id="cfTags"></div>
+        <div class="card-hint">Tap the card to see the full lesson</div>
+      </div>
+      <div class="card-face back" id="cardBack">
+        <div class="card-label">Full lesson</div>
+        <div class="card-word" id="cbWord" style="font-size:22px; margin-bottom:2px;"></div>
+        <div id="cbMeaning" class="back-section-val" style="font-size:16px; color:var(--color-text-primary); margin-bottom:10px;"></div>
+        <div class="back-row" id="cbTags"></div>
+        <hr style="border:none; border-top:0.5px solid var(--color-border-tertiary); margin:10px 0;">
+        <div class="back-section">
+          <div class="back-section-label">Memory tip</div>
+          <div class="back-section-val" id="cbTip"></div>
+        </div>
+        <div class="back-section">
+          <div class="back-section-label">Example sentences</div>
+          <div id="cbExamples"></div>
+        </div>
+        <div class="back-section" id="cbCollocDiv">
+          <div class="back-section-label">Common phrases</div>
+          <div class="back-section-val" id="cbColloc"></div>
+        </div>
+        <div style="margin-top:14px;">
+          <div class="back-section-label">How hard was this? (1 = easy, 5 = hard)</div>
+          <div class="rating-row" id="ratingRow">
+            <button class="rate-btn" onclick="rateWord(1)">1</button>
+            <button class="rate-btn" onclick="rateWord(2)">2</button>
+            <button class="rate-btn" onclick="rateWord(3)">3</button>
+            <button class="rate-btn" onclick="rateWord(4)">4</button>
+            <button class="rate-btn" onclick="rateWord(5)">5</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="controls" id="controls">
+    <div>
+      <div class="topic-row" id="topicRow">
+        <div class="topic-chip active" data-topic="" onclick="selectTopic(this)">Any topic</div>
+        <div class="topic-chip" data-topic="food" onclick="selectTopic(this)">Food</div>
+        <div class="topic-chip" data-topic="travel" onclick="selectTopic(this)">Travel</div>
+        <div class="topic-chip" data-topic="emotions" onclick="selectTopic(this)">Emotions</div>
+        <div class="topic-chip" data-topic="home" onclick="selectTopic(this)">Home</div>
+        <div class="topic-chip" data-topic="nature" onclick="selectTopic(this)">Nature</div>
+      </div>
+      <div style="display:flex; gap:8px; justify-content:center; margin-top:8px; flex-wrap:wrap;">
+        <button class="ctrl-btn" id="levelBtn" onclick="cycleLevel()">Level: Beginner</button>
+        <button class="ctrl-btn primary" id="generateBtn" onclick="generateLesson()">Get today's word ↗</button>
+      </div>
+    </div>
+  </div>
+  <div class="status-msg" id="statusMsg"></div>
+</div>
+
+<script>
+const LEVELS = ['beginner','elementary','intermediate','upper-intermediate','advanced'];
+let currentLevel = 0;
+let selectedTopic = '';
+let currentLesson = null;
+let wordsToday = [];
+let isLoading = false;
+let cardFlipped = false;
+let ratingGiven = false;
+
+const chatArea = document.getElementById('chatArea');
+const cardArea = document.getElementById('cardArea');
+const cardInner = document.getElementById('cardInner');
+const generateBtn = document.getElementById('generateBtn');
+const statusMsg = document.getElementById('statusMsg');
+const streakBar = document.getElementById('streakBar');
+
+document.getElementById('cardInner').addEventListener('click', () => {
+  if (!currentLesson) return;
+  cardFlipped = !cardFlipped;
+  cardInner.classList.toggle('flipped', cardFlipped);
+  if (cardFlipped && !ratingGiven) {
+    addCatBubble("Хорошо! 🐾 Now rate how hard it was — that helps me pick your next word!");
+  }
+});
+
+function selectTopic(el) {
+  document.querySelectorAll('.topic-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  selectedTopic = el.dataset.topic;
+}
+
+function cycleLevel() {
+  currentLevel = (currentLevel + 1) % LEVELS.length;
+  document.getElementById('levelBtn').textContent = 'Level: ' + LEVELS[currentLevel].charAt(0).toUpperCase() + LEVELS[currentLevel].slice(1);
+}
+
+function addCatBubble(text, delay=0) {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      const typingRow = document.createElement('div');
+      typingRow.className = 'bubble-row';
+      typingRow.innerHTML = `<div class="cat-avatar">🐱</div><div class="bubble"><div class="typing"><span></span><span></span><span></span></div></div>`;
+      chatArea.appendChild(typingRow);
+      chatArea.scrollTop = chatArea.scrollHeight;
+      setTimeout(() => {
+        typingRow.querySelector('.bubble').innerHTML = text;
+        chatArea.scrollTop = chatArea.scrollHeight;
+        resolve();
+      }, 900);
+    }, delay);
+  });
+}
+
+function addUserBubble(text) {
+  const row = document.createElement('div');
+  row.className = 'bubble-row user';
+  row.innerHTML = `<div class="bubble">${text}</div>`;
+  chatArea.appendChild(row);
+  chatArea.scrollTop = chatArea.scrollHeight;
+}
+
+function updateStreakBar() {
+  let html = '<span>Today\'s words:</span>';
+  for (let i = 0; i < Math.max(5, wordsToday.length + 1); i++) {
+    html += `<div class="streak-dot ${i < wordsToday.length ? 'done' : ''}"></div>`;
+  }
+  streakBar.innerHTML = html;
+}
+
+async function rateWord(n) {
+  if (ratingGiven) return;
+  ratingGiven = true;
+  document.querySelectorAll('.rate-btn').forEach((b, i) => {
+    if (i + 1 === n) b.classList.add('selected');
+    b.disabled = true;
+  });
+  wordsToday.push({ word: currentLesson.word, rating: n });
+  updateStreakBar();
+
+  const msgs = {
+    1: "Отлично! That was easy for you — I'll push you a bit harder next time! 🐾",
+    2: "Good work! You're building great instincts. One more and you'll really feel it clicking!",
+    3: "Solid! Средний уровень — right in the learning zone. Keep going!",
+    4: "Challenging one! But that's how we grow 💪 I'll reinforce this type soon.",
+    5: "Трудно, да? Don't worry — I'll bring this back around to help it stick! 🐾"
+  };
+  await addCatBubble(msgs[n]);
+  await addCatBubble(`Want another word? ${selectedTopic ? 'Still on <strong>${selectedTopic}</strong>?' : 'Pick a topic or I\'ll surprise you!'} 🐾`, 400);
+  generateBtn.disabled = false;
+  generateBtn.textContent = 'Next word ↗';
+}
+
+async function generateLesson() {
+  if (isLoading) return;
+  isLoading = true;
+  ratingGiven = false;
+  cardFlipped = false;
+  cardInner.classList.remove('flipped');
+  generateBtn.disabled = true;
+  generateBtn.textContent = 'Thinking...';
+  statusMsg.textContent = '';
+  cardArea.classList.remove('visible');
+
+  const topicNote = selectedTopic ? ` Focus topic: ${selectedTopic}.` : '';
+  const levelName = LEVELS[currentLevel];
+  const alreadySeen = wordsToday.map(w => w.word).join(', ');
+  const avoidNote = alreadySeen ? ` Avoid these words already seen today: ${alreadySeen}.` : '';
+
+  if (wordsToday.length === 0) {
+    await addCatBubble("Привет! I'm Apelsin, your fluffy Russian tutor! 🐾 I'm picking the perfect word for you right meow...");
+  } else {
+    addUserBubble("Give me another word!");
+    await addCatBubble("On it! Shuffling my paws through the dictionary... 🐾");
+  }
+
+  const systemPrompt = `You are Apelsin, a friendly, warm, expert Russian tutor. Generate a single Russian vocabulary lesson for a ${levelName} learner.${topicNote}${avoidNote}
+
+Return ONLY a valid JSON object, no markdown, no explanation, exactly this structure:
+{
+  "word": "Russian word with stress mark (ударение)",
+  "meaning": "English meaning (concise)",
+  "pronunciation": "phonetic guide for English speakers",
+  "grammatical_info": "e.g. neuter noun, imperfective verb, adjective",
+  "register": "neutral / formal / colloquial / informal",
+  "memory_tip": "fun mnemonic hint for English speakers (1-2 sentences)",
+  "collocations": ["common phrase 1", "common phrase 2"],
+  "examples": [
+    {"ru": "Russian sentence", "en": "English translation"},
+    {"ru": "Russian sentence", "en": "English translation"}
+  ],
+  "level_used": "${levelName}",
+  "fun_cat_intro": "A short 1-sentence intro from Apelsin the cat that feels conversational and friendly, mentioning the word naturally"
+}`;
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: 'Generate the lesson now.' }]
+      })
+    });
+    const data = await resp.json();
+    const raw = data.content.map(b => b.text || '').join('');
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const lesson = JSON.parse(clean);
+    currentLesson = lesson;
+
+    await addCatBubble(`${lesson.fun_cat_intro} <span class="ru-word">${lesson.word}</span><span class="tag">${lesson.grammatical_info}</span><span class="tag">${lesson.register}</span>`);
+
+    document.getElementById('cfWord').textContent = lesson.word;
+    document.getElementById('cfPron').textContent = '/' + lesson.pronunciation + '/';
+    document.getElementById('cfTags').innerHTML = `<span class="tag">${lesson.grammatical_info}</span> <span class="tag">${lesson.register}</span> <span class="tag">${lesson.level_used}</span>`;
+
+    document.getElementById('cbWord').textContent = lesson.word + ' — ' + lesson.meaning;
+    document.getElementById('cbMeaning').textContent = '/' + lesson.pronunciation + '/';
+    document.getElementById('cbTags').innerHTML = `<span class="tag">${lesson.grammatical_info}</span><span class="tag">${lesson.register}</span><span class="tag">${lesson.level_used}</span>`;
+    document.getElementById('cbTip').textContent = lesson.memory_tip;
+
+    const exDiv = document.getElementById('cbExamples');
+    exDiv.innerHTML = lesson.examples.map(e => `<div style="margin-bottom:6px;"><div class="example-ru">${e.ru}</div><div class="example-en">${e.en}</div></div>`).join('');
+
+    if (lesson.collocations && lesson.collocations.length) {
+      document.getElementById('cbColloc').textContent = lesson.collocations.join(' · ');
+      document.getElementById('cbCollocDiv').style.display = 'block';
+    } else {
+      document.getElementById('cbCollocDiv').style.display = 'none';
+    }
+
+    document.querySelectorAll('.rate-btn').forEach(b => { b.classList.remove('selected'); b.disabled = false; });
+
+    cardArea.classList.add('visible');
+    await addCatBubble("Tap the card to flip it and see everything! 🐾", 300);
+
+  } catch(e) {
+    statusMsg.textContent = 'Oops! Apelsin got distracted by a yarn ball. Try again!';
+    generateBtn.disabled = false;
+    generateBtn.textContent = wordsToday.length === 0 ? 'Get today\'s word ↗' : 'Next word ↗';
+  }
+
+  isLoading = false;
+}
+
+updateStreakBar();
+</script>
